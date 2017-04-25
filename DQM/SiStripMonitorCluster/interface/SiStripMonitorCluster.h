@@ -31,6 +31,7 @@ class DQMStore;
 class SiStripDetCabling;
 class SiStripCluster;
 class SiPixelCluster;
+//class SiStripDigi;
 class EventWithHistory;
 class APVCyclePhaseCollection;
 class SiStripDCSStatus;
@@ -43,7 +44,7 @@ class SiStripMonitorCluster : public DQMEDAnalyzer {
   virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
   void bookHistograms(DQMStore::IBooker &, edm::Run const &, edm::EventSetup const &) override;
   void dqmBeginRun(const edm::Run&, const edm::EventSetup&) override;
-  
+
   struct ModMEs{ // MEs for one single detector module
 
     MonitorElement* NumberOfClusters = 0;
@@ -79,7 +80,7 @@ class SiStripMonitorCluster : public DQMEDAnalyzer {
   };
 
   struct SubDetMEs{ // MEs for Subdetector Level
-    int totNClusters = 0; 
+    int totNClusters = 0;
     MonitorElement* SubDetTotClusterTH1 = 0;
     MonitorElement* SubDetTotClusterProf = 0;
     MonitorElement* SubDetClusterApvProf = 0;
@@ -100,11 +101,11 @@ class SiStripMonitorCluster : public DQMEDAnalyzer {
     float noise;
   };
 
-  MonitorElement* GlobalApvCycleDBxTH2 = 0; 
-  MonitorElement* GlobalDBxTH1 = 0;  
-  MonitorElement* GlobalDBxCycleTH1 = 0;  
+  MonitorElement* GlobalApvCycleDBxTH2 = 0;
+  MonitorElement* GlobalDBxTH1 = 0;
+  MonitorElement* GlobalDBxCycleTH1 = 0;
   MonitorElement* GlobalCStripVsCpix = 0;
-  MonitorElement* GlobalABXTH1_CSCP = 0; 
+  MonitorElement* GlobalABXTH1_CSCP = 0;
   MonitorElement* PixVsStripMultiplicityRegions = 0;
   MonitorElement* GlobalMainDiagonalPosition = 0;
   MonitorElement* GlobalMainDiagonalPosition_vs_BX = 0;
@@ -118,6 +119,7 @@ class SiStripMonitorCluster : public DQMEDAnalyzer {
   MonitorElement* ClusWidthVsAmpTH2 = 0;
   MonitorElement* NumberOfStripClus_vs_BX = 0; // plot n. 3
   MonitorElement* NumberOfPixelClus_vs_BX = 0; // plot n. 4
+  MonitorElement* NumberOfFEDClus = 0;
 
  private:
 
@@ -156,7 +158,7 @@ class SiStripMonitorCluster : public DQMEDAnalyzer {
   edm::ParameterSet Parameters;
 
   // TkHistoMap added
-  TkHistoMap* tkmapcluster; 
+  TkHistoMap* tkmapcluster;
   TkHistoMap* tkmapclusterch;
 
   int runNb, eventNb;
@@ -176,7 +178,7 @@ class SiStripMonitorCluster : public DQMEDAnalyzer {
   bool layerswitchnumclusterprofon;
   bool layerswitchclusterwidthprofon;
   bool layer_clusterWidth_vs_amplitude_on;
-  
+
   bool globalswitchstripnoise2apvcycle;
   bool globalswitchstripnoise3apvcycle;
   bool globalswitchmaindiagonalposition;
@@ -220,7 +222,7 @@ class SiStripMonitorCluster : public DQMEDAnalyzer {
   /*
   edm::InputTag clusterProducerStrip_;
   edm::InputTag clusterProducerPix_;
-  edm::InputTag historyProducer_;  
+  edm::InputTag historyProducer_;
   edm::InputTag apvPhaseProducer_;
   */
 
@@ -228,10 +230,11 @@ class SiStripMonitorCluster : public DQMEDAnalyzer {
   edm::EDGetTokenT<edmNew::DetSetVector<SiPixelCluster> >         clusterProducerPixToken_;
   edm::EDGetTokenT<EventWithHistory>        historyProducerToken_;
   edm::EDGetTokenT<APVCyclePhaseCollection> apvPhaseProducerToken_;
+  //edm::EDGetTokenT<edmNew::DetSetVector<SiStripDigi> > digiProducerStripToken_;
 
   bool   applyClusterQuality_;
-  double sToNLowerLimit_;  
-  double sToNUpperLimit_;  
+  double sToNLowerLimit_;
+  double sToNUpperLimit_;
   double widthLowerLimit_;
   double widthUpperLimit_;
 

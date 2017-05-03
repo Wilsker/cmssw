@@ -22,8 +22,11 @@ SiStripDetCabling::SiStripDetCabling(const SiStripFedCabling& fedcabling,const T
   // create fullcabling_, loop over vector of FedChannelConnection, either make new element of map, or add to appropriate vector of existing map element
   // get feds list (vector) from fedcabling object - these are the active FEDs
   auto feds = fedcabling.fedIds();
-  for ( auto ifed = feds.begin(); ifed != feds.end(); ifed++ ) { // iterate over active feds, get all their FedChannelConnection-s
+  std::cout << "Loop over vector of all active FED IDs" << std::endl;
+  for ( auto ifed = feds.begin(); ifed != feds.end(); ifed++ ) { // iterate over active feds, get all their FedChannelConnections
     SiStripFedCabling::ConnsConstIterRange conns = fedcabling.fedConnections( *ifed );
+    //std::cout << "*ifed = " << *ifed << std::endl;
+    std::cout << " ===== Check out all Feds channel connections ===== " << std::endl;
     for ( auto iconn = conns.begin(); iconn != conns.end(); iconn++ ) { // loop over FedChannelConnection objects
       addDevices(*iconn, fullcabling_); // leave separate method, in case you will need to add devices also after constructing
       bool have_fed_id = iconn->fedId();
@@ -31,14 +34,18 @@ SiStripDetCabling::SiStripDetCabling(const SiStripFedCabling& fedcabling,const T
       if(have_fed_id){ // these apvpairs are seen from the readout
 	// there can be at most 6 APVs on one DetId: 0,1,2,3,4,5
         int which_apv_pair = iconn->apvPairNumber(); // APVPair (0,1) for 512 strips and (0,1,2) for 768 strips
-	
+
 	// patch needed to take into account invalid detids or apvPairs
-	if( iconn->detId()==0 ||  
-	    iconn->detId() == sistrip::invalid32_ ||  
+	if( iconn->detId()==0 ||
+	    iconn->detId() == sistrip::invalid32_ ||
 	    iconn->apvPairNumber() == sistrip::invalid_  ||
 	    iconn->nApvPairs() == sistrip::invalid_ ) {
 	  continue;
 	}
+  std::cout << ">>>> Det ID = " << iconn->detId() << std::endl;
+  std::stringstream FedChanConn_ss;
+  iconn->print(FedChanConn_ss);
+  std::cout << FedChanConn_ss.str() << std::endl;
 
 	if(iconn->i2cAddr(0)) vector_of_connected_apvs.push_back(2*which_apv_pair + 0); // first apv of the pair
 	if(iconn->i2cAddr(1)) vector_of_connected_apvs.push_back(2*which_apv_pair + 1); // second apv of the pair
@@ -87,7 +94,7 @@ SiStripDetCabling::SiStripDetCabling(const SiStripFedCabling& fedcabling,const T
 }
 
 //---- add to certain connections
-void SiStripDetCabling::addDevices( const FedChannelConnection& conn, 
+void SiStripDetCabling::addDevices( const FedChannelConnection& conn,
                                     std::map< uint32_t, std::vector<const FedChannelConnection *> >& conns ){
   if( conn.detId() && conn.detId() != sistrip::invalid32_ &&  // check for valid detid
       conn.apvPairNumber() != sistrip::invalid_ ) {           // check for valid apv pair number
@@ -299,7 +306,7 @@ void SiStripDetCabling::getAllDetectorsContiguousIds(std::map<uint32_t, unsigned
   unsigned int contiguousIndex = 0;
   for(std::vector<uint32_t>::const_iterator idet = all.begin(); idet!= all.end(); ++idet){
      ++contiguousIndex;
-     allToContiguous.insert(std::make_pair(*idet,contiguousIndex)); 
+     allToContiguous.insert(std::make_pair(*idet,contiguousIndex));
   }
 }
 
@@ -348,7 +355,7 @@ void SiStripDetCabling::print( std::stringstream& ss ) const {
        << " connections for DetId: " << ii->first << std::endl;
     Conns::const_iterator iii = ii->second.begin();
     Conns::const_iterator jjj = ii->second.end();
-    for ( ; iii != jjj; ++iii ) { 
+    for ( ; iii != jjj; ++iii ) {
       if ( (*iii)->isConnected() ) { valid++; }
       total++;
       ss << **iii << std::endl;

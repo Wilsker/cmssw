@@ -572,7 +572,7 @@ void SiStripMonitorDigi::createMEs(DQMStore::IBooker & ibooker , const edm::Even
 
 //--------------------------------------------------------------------------------------------
 void SiStripMonitorDigi::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
-  cout << "SiStripMonitorDigi::analyze" << endl;
+  //cout << "SiStripMonitorDigi::analyze" << endl;
 
   // Filter out events if DCS Event if requested
   if (dcsStatus_ && !dcsStatus_->getStatus(iEvent, iSetup)) return;
@@ -606,10 +606,13 @@ void SiStripMonitorDigi::analyze(const edm::Event& iEvent, const edm::EventSetup
     iSubdet->second.SubDetApvShots.clear();
   }
 
+  // Loop over layers of detector
+  std::map<int,int> FEDID_v_digisum;
   for (std::map<std::string, std::vector< uint32_t > >::const_iterator iterLayer = LayerDetMap.begin();
        iterLayer != LayerDetMap.end(); iterLayer++) {
 
     std::string layer_label = iterLayer->first;
+    //cout << "Layer label = " << layer_label << endl;
 
     std::vector< uint32_t > layer_dets = iterLayer->second;
     std::map<std::string, LayerMEs>::iterator iLayerME = LayerMEsMap.find(layer_label);
@@ -628,7 +631,6 @@ void SiStripMonitorDigi::analyze(const edm::Event& iEvent, const edm::EventSetup
     uint16_t iDet = 0;
 
     std::string subdet_label = "";
-    std::map<int,int> FEDID_v_digisum;
 
     // loop over all modules in the layer
     for (std::vector< uint32_t >::const_iterator iterDets = layer_dets.begin() ;
@@ -770,13 +772,13 @@ void SiStripMonitorDigi::analyze(const edm::Event& iEvent, const edm::EventSetup
     }//end of loop over DetIds
 
     // Fill once looped over all detector elements.
-    if(globalswitchNDigisFEDID){
-      map<int,int>::iterator it;
-      for(it=FEDID_v_digisum.begin(); it!=FEDID_v_digisum.end(); it++){
-        NumberOfFEDDigis->Fill(it->first,it->second);
-      }
-    }
-    FEDID_v_digisum.clear();
+    //if(globalswitchNDigisFEDID){
+    //  map<int,int>::iterator it;
+    //  for(it=FEDID_v_digisum.begin(); it!=FEDID_v_digisum.end(); it++){
+    //    NumberOfFEDDigis->Fill(it->first,it->second);
+    //  }
+    //}
+    //FEDID_v_digisum.clear();
 
     if(layerswitchnumdigison) {
       fillME(local_layermes.LayerNumberOfDigis,ndigi_layer);
@@ -797,6 +799,15 @@ void SiStripMonitorDigi::analyze(const edm::Event& iEvent, const edm::EventSetup
       //std::cout << " totDigis" <<  iSubdet->second.totNDigis << " in "  << subdet_label << std::endl;
     }
   }//End loop over layers.
+
+  // Fill once looped over all detector elements.
+  if(globalswitchNDigisFEDID){
+    map<int,int>::iterator it;
+    for(it=FEDID_v_digisum.begin(); it!=FEDID_v_digisum.end(); it++){
+      NumberOfFEDDigis->Fill(it->first,it->second);
+    }
+  }
+  FEDID_v_digisum.clear();
 
   if (subdetswitchtotdigifailureon) {
 

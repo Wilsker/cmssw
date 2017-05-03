@@ -153,6 +153,7 @@ class SiStripMonitorCluster : public DQMEDAnalyzer {
   unsigned long long m_cacheID_;
 
   edm::ESHandle<SiStripDetCabling> SiStripDetCabling_;
+  edm::ESHandle<SiStripDetCabling> SiStripDetCabling_new_;
   std::vector<uint32_t> ModulesToBeExcluded_;
 
   edm::ParameterSet Parameters;

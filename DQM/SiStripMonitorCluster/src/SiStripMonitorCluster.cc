@@ -244,6 +244,7 @@ void SiStripMonitorCluster::createMEs(const edm::EventSetup& es , DQMStore::IBoo
     const TrackerTopology* const tTopo = tTopoHandle.product();
 
     // take from eventSetup the SiStripDetCabling object - here will use SiStripDetControl later on
+    cout << " >>>>>>>> SiStripMonitorCluster::createMEs Initialise SiStripDetCabling_  <<<<<<<< " << endl;
     es.get<SiStripDetCablingRcd>().get(SiStripDetCabling_);
 
     // get list of active detectors from SiStripDetCabling
@@ -633,8 +634,17 @@ void SiStripMonitorCluster::analyze(const edm::Event& iEvent, const edm::EventSe
 
   edm::ESHandle<SiStripQuality> qualityHandle;
   iSetup.get<SiStripQualityRcd>().get(qualityLabel_,qualityHandle);
-
+  cout << " >>>>>>>> SiStripMonitorCluster::analyze Initialise SiStripDetCabling_ <<<<<<<< " << endl;
   iSetup.get<SiStripDetCablingRcd>().get(SiStripDetCabling_);
+  cout << " >>>>>>>> SiStripMonitorCluster::analyze Initialise SiStripDetCabling_new_ <<<<<<<< " << endl;
+  iSetup.get<SiStripDetCablingRcd>().get(SiStripDetCabling_new_);
+
+  std::stringstream SiStripDetCabling_ss;
+  SiStripDetCabling_new_->print(SiStripDetCabling_ss);
+  cout << "=========================== BEGIN SiStripDetCabling print ================================="<< endl;
+  //cout << SiStripDetCabling_ss.str() << endl;
+  cout << "============================ END SiStripDetCabling print =================================="<< endl;
+
 
   // get collection of DetSetVector of clusters from Event
   edm::Handle< edmNew::DetSetVector<SiStripCluster> > cluster_detsetvektor;
@@ -677,10 +687,15 @@ void SiStripMonitorCluster::analyze(const edm::Event& iEvent, const edm::EventSe
 
   SiStripFolderOrganizer folder_organizer;
   bool found_layer_me = false;
+
+  //Loop over layers
+  std::map<int,int> FEDID_v_clustersum;
+
   for (std::map<std::string, std::vector< uint32_t > >::const_iterator iterLayer = LayerDetMap.begin();
        iterLayer != LayerDetMap.end(); iterLayer++) {
 
     std::string layer_label = iterLayer->first;
+
 
     int ncluster_layer = 0;
     std::map<std::string, LayerMEs>::iterator iLayerME = LayerMEsMap.find(layer_label);
@@ -702,14 +717,12 @@ void SiStripMonitorCluster::analyze(const edm::Event& iEvent, const edm::EventSe
 
     //int temp_FEDID = -9999;
     //int sum_FEDClusters=0;
-    std::map<int,int> FEDID_v_clustersum;
-    cour << "iterLayer->first = " << iterLayer->first << endl;
+//    std::map<int,int> FEDID_v_clustersum;
 
     for (std::vector< uint32_t >::const_iterator iterDets = iterLayer->second.begin() ; iterDets != iterLayer->second.end() ; iterDets++) {
       iDet++;
       // detid (id of active modules in layer) and type of ME
       uint32_t detid = (*iterDets);
-      cout << "detid = " << detid << endl;
 
       // Get SubDet label once
       if (subdet_label.size() == 0) subdet_label = folder_organizer.getSubDetFolderAndTag(detid, tTopo).second;
@@ -725,24 +738,58 @@ void SiStripMonitorCluster::analyze(const edm::Event& iEvent, const edm::EventSe
        }
        else found_module_me = false;
 
-       //Get all FED connections associated with given detID.
-       // All connections for a detid have same FED Id therefore one FEDID is associated with a given detID.
-       std::vector<const FedChannelConnection*> Fedconnections = SiStripDetCabling_->getConnections(detid);
+       edmNew::DetSetVector<SiStripCluster>::const_iterator isearch = cluster_detsetvektor->find(detid); // search  clusters of detid
+       edmNew::DetSet<SiStripCluster> cluster_detset = (*isearch);
 
+
+
+
+
+
+
+
+//////////////////////////////////////////////////////////////
+
+       // Get all FED connections associated with given detID.
+       // All connections for a detid have same FED Id therefore one FEDID is associated with a given detID.
+       // Vector of constant FedChannelConnection objects to variable pointers.
+
+       std::vector<const FedChannelConnection*> Fedconnections = SiStripDetCabling_->getConnections(detid);
+       //cout << "=!=!=! Layer label !=!=!= " << iterLayer->first << endl;
+       //cout << "detid = " << detid << endl;
        for(unsigned int f=0; f<Fedconnections.size();f++){
-         cout << "SiStripMonitorCluster::analyze: FED connection @ " << f << " FEDID = " << Fedconnections[f]->fedId() <<  endl;
+         //cout << "SiStripMonitorCluster::analyze: FED connection @ " << f << " FEDID = " << Fedconnections[f]->fedId() <<  endl;
+         std::stringstream fedss;
+         Fedconnections[f]->print(fedss);
+         //cout << "SiStripMonitorCluster::analyze: FEDChannelConnection @ " << f << " print = " <<  endl;
+         //cout << fedss.str() << endl;
          if(f>0){
-           cout << "SiStripMonitorCluster::analyze: FED connection @ " << f-1 << " FEDID = " << Fedconnections[f-1]->fedId() << endl;
            if(Fedconnections[f]->fedId() != Fedconnections[f-1]->fedId()){
-             cout << "!WARNING!" << endl;
+             cout << "!!!!!! WARNING !!!!!!" << endl;
              cout << "============ DIFFERENT FEDID for Fedconnections from single detID !!!!!! ================"<< endl;
              cout << "SiStripMonitorCluster::analyze: FED connection @ " << f << " FEDID = " << Fedconnections[f]->fedId() <<  endl;
              cout << "SiStripMonitorCluster::analyze: FED connection @ " << f-1 << " FEDID = " << Fedconnections[f-1]->fedId() <<  endl;
+             cout << "============================================================"<< endl;
            }
          }
        }
 
-       edmNew::DetSetVector<SiStripCluster>::const_iterator isearch = cluster_detsetvektor->find(detid); // search  clusters of detid
+
+
+       // Filling FED Id associated clusters map.
+       if( FEDID_v_clustersum.find(Fedconnections[0]->fedId()) != FEDID_v_clustersum.end()){
+         FEDID_v_clustersum[Fedconnections[0]->fedId()] = FEDID_v_clustersum.find(Fedconnections[0]->fedId())->second + cluster_detset.size();
+       }
+       else{
+         FEDID_v_clustersum[Fedconnections[0]->fedId()] = cluster_detset.size();
+       }
+
+       Fedconnections.clear();
+
+//////////////////////////////////////////////////////////////
+
+
+
 
        if(isearch==cluster_detsetvektor->end()){
          if(found_module_me && moduleswitchncluson && (mod_single.NumberOfClusters)){
@@ -756,7 +803,7 @@ void SiStripMonitorCluster::analyze(const edm::Event& iEvent, const edm::EventSe
 
       //cluster_detset is a structure, cluster_detset.data is a std::vector<SiStripCluster>, cluster_detset.id is uint32_t
       //      edmNew::DetSet<SiStripCluster> cluster_detset = (*cluster_detsetvektor)[detid]; // the statement above makes sure there exists an element with 'detid'
-      edmNew::DetSet<SiStripCluster> cluster_detset = (*isearch);
+      //edmNew::DetSet<SiStripCluster> cluster_detset = (*isearch);
 
       // Filling TkHistoMap with number of clusters for each module
       if(clustertkhistomapon) {
@@ -765,13 +812,11 @@ void SiStripMonitorCluster::analyze(const edm::Event& iEvent, const edm::EventSe
 
 
 
-      // Filling FED Id associated clusters map.
-      if( FEDID_v_clustersum.find(Fedconnections[0]->fedId()) != FEDID_v_clustersum.end()){
-        FEDID_v_clustersum[Fedconnections[0]->fedId()] = FEDID_v_clustersum.find(Fedconnections[0]->fedId())->second + cluster_detset.size();
-      }
-      else{
-        FEDID_v_clustersum[Fedconnections[0]->fedId()] = cluster_detset.size();
-      }
+
+
+
+
+
 
 
 
@@ -898,11 +943,11 @@ void SiStripMonitorCluster::analyze(const edm::Event& iEvent, const edm::EventSe
 
 
     //Filling # clusters per FED ID histogram from FED Id clusters map.
-    map<int,int>::iterator it;
-    for(it=FEDID_v_clustersum.begin(); it!=FEDID_v_clustersum.end(); it++){
-      NumberOfFEDClus->Fill(it->first,it->second);
-    }
-    FEDID_v_clustersum.clear();
+    //map<int,int>::iterator it;
+    //for(it=FEDID_v_clustersum.begin(); it!=FEDID_v_clustersum.end(); it++){
+    //  NumberOfFEDClus->Fill(it->first,it->second);
+    //}
+    //FEDID_v_clustersum.clear();
 
     if (subdetswitchtotclusprofon)
       fillME(layer_single.LayerNumberOfClusterTrend,trendVar,ncluster_layer);
@@ -911,6 +956,13 @@ void SiStripMonitorCluster::analyze(const edm::Event& iEvent, const edm::EventSe
     if(iSubdet != SubDetMEsMap.end()) iSubdet->second.totNClusters += ncluster_layer;
 
   }//End of loop over layers
+
+  //Filling # clusters per FED ID histogram from FED Id clusters map (for all layers simultaneously).
+  map<int,int>::iterator it;
+  for(it=FEDID_v_clustersum.begin(); it!=FEDID_v_clustersum.end(); it++){
+    NumberOfFEDClus->Fill(it->first,it->second);
+  }
+  FEDID_v_clustersum.clear();
 
   //  EventHistory
   edm::Handle<EventWithHistory> event_history;

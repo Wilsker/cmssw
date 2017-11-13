@@ -161,13 +161,9 @@ void FEDHistograms::fillFEDHistograms(FEDErrors & aFedErr,
               const double aLumiSection)
 {
   const FEDErrors::FEDLevelErrors & lFedLevelErrors = aFedErr.getFEDLevelErrors();
-  const FEDErrors::FEDCounters & fedLevelCounters = aFedErr.getFEDErrorsCounters();
-  const unsigned int lFedId = aFedErr.fedID();
+  //const FEDErrors::FEDCounters & fedLevelCounters = aFedErr.getFEDErrorsCounters();
+	const unsigned int lFedId = aFedErr.fedID();
 
-  if(fedErrorsVsIdVsLumi_.globalswitchon){
-		std::cout << "Lumi Section = " << aLumiSection << " lFedId = " << lFedId << " # errors = " << fedLevelCounters.nFEDErrors << std::endl;
-    fillHistogram2D(fedErrorsVsIdVsLumi_,aLumiSection,lFedId,fedLevelCounters.nFEDErrors);
-  }
 
   fillHistogram(fedEventSize_,lFedId,aEvtSize);
 
@@ -253,6 +249,14 @@ void FEDHistograms::fillFEDHistograms(FEDErrors & aFedErr,
   std::vector<FEDErrors::APVLevelErrors> & lAPVVec = aFedErr.getAPVLevelErrors();
   for (unsigned int iApv(0); iApv < lAPVVec.size(); iApv++){
     fillAPVsHistograms(lFedId,lAPVVec[iApv],lFullDebug);
+  }
+
+
+	double numChannelLevelErrors = 0;
+  if(fedErrorsVsIdVsLumi_.globalswitchon){
+		//std::cout << "Lumi Section = " << aLumiSection << " lFedId = " << lFedId << " channel level errors = " << lChVec.size() << std::endl;
+		numChannelLevelErrors = double(lChVec.size());
+		fillHistogram2D(fedErrorsVsIdVsLumi_,aLumiSection,lFedId,numChannelLevelErrors);
   }
 
 

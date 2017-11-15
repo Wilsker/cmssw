@@ -49,7 +49,8 @@ public:
   void fillFEDHistograms(FEDErrors & aFedError,
 			 const unsigned int aEvtSize,
 			 bool lFullDebug,
-       const double aLumiSection
+       const double aLumiSection,
+       unsigned int & NumBadChannels_perFEDID
 			 );
 
   void fillFEHistograms(const unsigned int aFedId,

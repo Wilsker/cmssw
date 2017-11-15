@@ -177,15 +177,11 @@ SiStripFEDMonitorPlugin::~SiStripFEDMonitorPlugin()
 //
 
 // ------------ method called to for each event  ------------
-void
-SiStripFEDMonitorPlugin::analyze(const edm::Event& iEvent,
-				 const edm::EventSetup& iSetup)
-{
+void SiStripFEDMonitorPlugin::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
   //Retrieve tracker topology from geometry
   edm::ESHandle<TrackerTopology> tTopoHandle;
   iSetup.get<TrackerTopologyRcd>().get(tTopoHandle);
   const TrackerTopology* const tTopo = tTopoHandle.product();
-
   //update cabling
   updateCabling(iSetup);
 
@@ -231,9 +227,10 @@ SiStripFEDMonitorPlugin::analyze(const edm::Event& iEvent,
   maxFedBufferSize_ = 0;
 
   //loop over siStrip FED IDs
-  for (unsigned int fedId = FEDNumbering::MINSiStripFEDID;
-       fedId <= FEDNumbering::MAXSiStripFEDID;
-       fedId++) {//loop over FED IDs
+  for (unsigned int fedId = FEDNumbering::MINSiStripFEDID; fedId <= FEDNumbering::MAXSiStripFEDID; fedId++) {//loop over FED IDs
+
+    unsigned int lNBadChannels_perFEDID = 0;
+
     const FEDRawData& fedData = rawDataCollection.FEDData(fedId);
 
     //create an object to fill all errors
@@ -241,28 +238,34 @@ SiStripFEDMonitorPlugin::analyze(const edm::Event& iEvent,
 
     double aLumiSection = iEvent.orbitNumber()/262144.0;
 
+    /*fedErrors_.fillBadChannelList(doTkHistoMap_,
+    fedHists_.tkHistoMapPointer(),
+    fedHists_.getFedvsAPVpointer(),
+    lNTotBadChannels,
+    lNTotBadActiveChannels,
+    lNBadChannels_perFEDID);
+    std::cout << "Post fill # BadChannels perFEDID = " << lNBadChannels_perFEDID << std::endl;*/
+
     //Do detailed check
     //first check if data exists
     bool lDataExist = fedErrors_.checkDataPresent(fedData);
     if (!lDataExist) {
-      fedHists_.fillFEDHistograms(fedErrors_,0,fullDebugMode_,aLumiSection);
+      fedHists_.fillFEDHistograms(fedErrors_,0,fullDebugMode_,aLumiSection, lNBadChannels_perFEDID);
       continue;
     }
 
-
-
     //check for problems and fill detailed histograms
     fedErrors_.fillFEDErrors(fedData,
-			     fullDebugMode_,
-			     printDebug_,
-			     lNChannelMonitoring,
-			     lNChannelUnpacker,
-			     doMedHists_,
-			     fedHists_.cmHistPointer(false),
-			     fedHists_.cmHistPointer(true),
-			     doFEMajorityCheck_,
-			     lFeMajFrac
-			     );
+      fullDebugMode_,
+      printDebug_,
+      lNChannelMonitoring,
+      lNChannelUnpacker,
+      doMedHists_,
+      fedHists_.cmHistPointer(false),
+      fedHists_.cmHistPointer(true),
+      doFEMajorityCheck_,
+      lFeMajFrac
+    );
 
     //check filled in previous method.
     bool lFailUnpackerFEDcheck = fedErrors_.failUnpackerFEDCheck();
@@ -274,7 +277,7 @@ SiStripFEDMonitorPlugin::analyze(const edm::Event& iEvent,
     }
     //std::cout << " -- " << fedId << " " << lSize << std::endl;
 
-    fedHists_.fillFEDHistograms(fedErrors_,lSize,fullDebugMode_,aLumiSection);
+    //fedHists_.fillFEDHistograms(fedErrors_,lSize,fullDebugMode_,aLumiSection, lNBadChannels_perFEDID);
 
     bool lFailMonitoringFEDcheck = fedErrors_.failMonitoringFEDCheck();
     if (lFailMonitoringFEDcheck) lNTotBadFeds++;
@@ -285,15 +288,15 @@ SiStripFEDMonitorPlugin::analyze(const edm::Event& iEvent,
     //print only the summary, and more info if printDebug>1
     if (lFailMonitoringFEDcheck != lFailUnpackerFEDcheck) {
       if (printDebug_>1) {
-	std::ostringstream debugStream;
-	debugStream << " --- WARNING: FED " << fedId << std::endl
-		    << " ------ Monitoring FED check " ;
-	if (lFailMonitoringFEDcheck) debugStream << "failed." << std::endl;
-	else debugStream << "passed." << std::endl ;
-	debugStream << " ------ Unpacker FED check " ;
-	if (lFailUnpackerFEDcheck) debugStream << "failed." << std::endl;
-	else debugStream << "passed." << std::endl ;
-	edm::LogError("SiStripMonitorHardware") << debugStream.str();
+        std::ostringstream debugStream;
+        debugStream << " --- WARNING: FED " << fedId << std::endl
+        << " ------ Monitoring FED check " ;
+        if (lFailMonitoringFEDcheck) debugStream << "failed." << std::endl;
+        else debugStream << "passed." << std::endl ;
+        debugStream << " ------ Unpacker FED check " ;
+        if (lFailUnpackerFEDcheck) debugStream << "failed." << std::endl;
+        else debugStream << "passed." << std::endl ;
+        edm::LogError("SiStripMonitorHardware") << debugStream.str();
       }
 
       if (lFailMonitoringFEDcheck) lNFEDMonitoring++;
@@ -306,47 +309,50 @@ SiStripFEDMonitorPlugin::analyze(const edm::Event& iEvent,
     //so that tkHistoMap knows which channels should be there.
     if (doTkHistoMap_ && !fedHists_.tkHistoMapPointer()) {
       edm::LogWarning("SiStripMonitorHardware") << " -- Fedid " << fedId
-						<< ", TkHistoMap enabled but pointer is null." << std::endl;
+      << ", TkHistoMap enabled but pointer is null." << std::endl;
     }
 
     fedErrors_.fillBadChannelList(doTkHistoMap_,
-				  fedHists_.tkHistoMapPointer(),
-				  fedHists_.getFedvsAPVpointer(),
-				  lNTotBadChannels,
-				  lNTotBadActiveChannels);
+      fedHists_.tkHistoMapPointer(),
+      fedHists_.getFedvsAPVpointer(),
+      lNTotBadChannels,
+      lNTotBadActiveChannels,
+      lNBadChannels_perFEDID
+    );
+    fedHists_.fillFEDHistograms(fedErrors_,lSize,fullDebugMode_,aLumiSection, lNBadChannels_perFEDID);
   }//loop over FED IDs
 
 
-  if (doFEMajorityCheck_){
-    for (unsigned int iP(0); iP<nParts; ++iP){
-      //std::cout << " -- Partition " << iP << std::endl;
-      //std::cout << " --- Number of elements in vec = " << lFeMajFrac[iP].size() << std::endl;
-      if (lFeMajFrac[iP].empty()) continue;
-      std::sort(lFeMajFrac[iP].begin(),lFeMajFrac[iP].end(),SiStripFEDMonitorPlugin::pairComparison);
+    if (doFEMajorityCheck_){
+      for (unsigned int iP(0); iP<nParts; ++iP){
+        //std::cout << " -- Partition " << iP << std::endl;
+        //std::cout << " --- Number of elements in vec = " << lFeMajFrac[iP].size() << std::endl;
+        if (lFeMajFrac[iP].empty()) continue;
+        std::sort(lFeMajFrac[iP].begin(),lFeMajFrac[iP].end(),SiStripFEDMonitorPlugin::pairComparison);
 
-      unsigned int lMajorityCounter = 0;
-      std::vector<unsigned int> lfedIds;
+        unsigned int lMajorityCounter = 0;
+        std::vector<unsigned int> lfedIds;
 
-      getMajority(lFeMajFrac[iP],lMajorityCounter,lfedIds);
-      //std::cout << " -- Found " << lfedIds.size() << " unique elements not matching the majority." << std::endl;
-      fedHists_.fillMajorityHistograms(iP,static_cast<float>(lMajorityCounter)/lFeMajFrac[iP].size(),lfedIds);
+        getMajority(lFeMajFrac[iP],lMajorityCounter,lfedIds);
+        //std::cout << " -- Found " << lfedIds.size() << " unique elements not matching the majority." << std::endl;
+        fedHists_.fillMajorityHistograms(iP,static_cast<float>(lMajorityCounter)/lFeMajFrac[iP].size(),lfedIds);
+      }
     }
-  }
 
-  if ((lNTotBadFeds> 0 || lNTotBadChannels>0) && printDebug_>1) {
-    std::ostringstream debugStream;
-    debugStream << "[SiStripFEDMonitorPlugin] --- Total number of bad feds = "
-		<< lNTotBadFeds << std::endl
-		<< "[SiStripFEDMonitorPlugin] --- Total number of bad channels = "
-		<< lNTotBadChannels << std::endl
-		<< "[SiStripFEDMonitorPlugin] --- Total number of bad active channels = "
-		<< lNTotBadActiveChannels << std::endl;
-    edm::LogInfo("SiStripMonitorHardware") << debugStream.str();
-  }
+    if ((lNTotBadFeds> 0 || lNTotBadChannels>0) && printDebug_>1) {
+      std::ostringstream debugStream;
+      debugStream << "[SiStripFEDMonitorPlugin] --- Total number of bad feds = "
+      << lNTotBadFeds << std::endl
+      << "[SiStripFEDMonitorPlugin] --- Total number of bad channels = "
+      << lNTotBadChannels << std::endl
+      << "[SiStripFEDMonitorPlugin] --- Total number of bad active channels = "
+      << lNTotBadActiveChannels << std::endl;
+      edm::LogInfo("SiStripMonitorHardware") << debugStream.str();
+    }
 
-  if ((lNFEDMonitoring > 0 || lNFEDUnpacker > 0 || lNChannelMonitoring > 0 || lNChannelUnpacker > 0) && printDebug_) {
-    std::ostringstream debugStream;
-    debugStream
+    if ((lNFEDMonitoring > 0 || lNFEDUnpacker > 0 || lNChannelMonitoring > 0 || lNChannelUnpacker > 0) && printDebug_) {
+      std::ostringstream debugStream;
+      debugStream
       << "[SiStripFEDMonitorPlugin]-------------------------------------------------------------------------" << std::endl
       << "[SiStripFEDMonitorPlugin]-------------------------------------------------------------------------" << std::endl
       << "[SiStripFEDMonitorPlugin]-- Summary of differences between unpacker and monitoring at FED level : " << std::endl
@@ -358,34 +364,34 @@ SiStripFEDMonitorPlugin::analyze(const edm::Event& iEvent,
       << "[SiStripFEDMonitorPlugin] ---- Number of times unpacking fails but not monitoring = " << lNChannelUnpacker << std::endl
       << "[SiStripFEDMonitorPlugin]-------------------------------------------------------------------------" << std::endl
       << "[SiStripFEDMonitorPlugin]-------------------------------------------------------------------------" << std::endl ;
-    edm::LogError("SiStripMonitorHardware") << debugStream.str();
+      edm::LogError("SiStripMonitorHardware") << debugStream.str();
+    }
 
-  }
 
-  fedErrors_.getFEDErrorsCounters().nTotalBadChannels = lNTotBadChannels;
-  fedErrors_.getFEDErrorsCounters().nTotalBadActiveChannels = lNTotBadActiveChannels;
+    fedErrors_.getFEDErrorsCounters().nTotalBadChannels = lNTotBadChannels;
+    fedErrors_.getFEDErrorsCounters().nTotalBadActiveChannels = lNTotBadActiveChannels;
 
-  //time in seconds since beginning of the run or event number
-  if (fillWithEvtNum_) {
-    // explicitely casting the event number unsigned long long to double here
-    double eventNumber = static_cast<double>(iEvent.id().event());
-    fedHists_.fillCountersHistograms(
+    //time in seconds since beginning of the run or event number
+    if (fillWithEvtNum_) {
+      // explicitely casting the event number unsigned long long to double here
+      double eventNumber = static_cast<double>(iEvent.id().event());
+      fedHists_.fillCountersHistograms(
         fedErrors_.getFEDErrorsCounters(),
         fedErrors_.getChannelErrorsCounters(),
         maxFedBufferSize_,
         eventNumber);
-  } else {
-    double aTime = iEvent.orbitNumber()/11223.;
-    fedHists_.fillCountersHistograms(
-        fedErrors_.getFEDErrorsCounters(),
-        fedErrors_.getChannelErrorsCounters(),
-        maxFedBufferSize_,
-        aTime);
-  }
+    }
+    else {
+        double aTime = iEvent.orbitNumber()/11223.;
+        fedHists_.fillCountersHistograms(
+          fedErrors_.getFEDErrorsCounters(),
+          fedErrors_.getChannelErrorsCounters(),
+          maxFedBufferSize_,
+          aTime);
+      }
+      nEvt_++;
 
-  nEvt_++;
-
-}//analyze method
+    }//analyze method
 
 
 bool SiStripFEDMonitorPlugin::pairComparison(const std::pair<unsigned int, unsigned int> & pair1,

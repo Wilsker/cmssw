@@ -158,7 +158,9 @@ void FEDHistograms::fillCountersHistograms(const FEDErrors::FEDCounters & fedLev
 void FEDHistograms::fillFEDHistograms(FEDErrors & aFedErr,
 				      const unsigned int aEvtSize,
 				      bool lFullDebug,
-              const double aLumiSection)
+              const double aLumiSection,
+							unsigned int & NumBadChannels_perFEDID
+						)
 {
   const FEDErrors::FEDLevelErrors & lFedLevelErrors = aFedErr.getFEDLevelErrors();
   //const FEDErrors::FEDCounters & fedLevelCounters = aFedErr.getFEDErrorsCounters();
@@ -250,7 +252,6 @@ void FEDHistograms::fillFEDHistograms(FEDErrors & aFedErr,
   for (unsigned int iApv(0); iApv < lAPVVec.size(); iApv++){
     fillAPVsHistograms(lFedId,lAPVVec[iApv],lFullDebug);
   }
-
 
 	double numChannelLevelErrors = 0;
   if(fedErrorsVsIdVsLumi_.globalswitchon){
